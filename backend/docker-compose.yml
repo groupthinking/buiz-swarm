@@ -1,0 +1,93 @@
+# BuizSwarm Local Development Docker Compose
+version: '3.8'
+
+services:
+  # FastAPI Application
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=true
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/buizswarm
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=dev-secret-key-change-in-production
+      - LOG_LEVEL=DEBUG
+    volumes:
+      - ./app:/app/app
+    depends_on:
+      - db
+      - redis
+    networks:
+      - buizswarm-network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=buizswarm
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - buizswarm-network
+
+  # Redis Cache and Message Queue
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - buizswarm-network
+
+  # Celery Worker (for background tasks)
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    environment:
+      - DEBUG=true
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/buizswarm
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=dev-secret-key-change-in-production
+    volumes:
+      - ./app:/app/app
+    depends_on:
+      - db
+      - redis
+    networks:
+      - buizswarm-network
+    command: celery -A app.tasks worker --loglevel=info
+
+  # Flower - Celery Monitoring (optional)
+  flower:
+    image: mher/flower:2.0
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - FLOWER_PORT=5555
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+    networks:
+      - buizswarm-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  buizswarm-network:
+    driver: bridge
