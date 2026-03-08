@@ -1,3 +1,16 @@
+Metadata-Version: 2.4
+Name: openclaw-flash-generator
+Version: 0.1.0
+Summary: OpenClaw Flash Generator — built-in business flash-card toolkit for any instant.
+License: MIT
+Keywords: flashcard,business,generator,openclaw,buiz-swarm
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: flask>=3.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Requires-Dist: pytest-cov>=5.0; extra == "dev"
+
 # buiz-swarm — OpenClaw Flash Generator
 
 > **Built-in business flash cards for any instant.**

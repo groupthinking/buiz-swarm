@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "openclaw-flash-generator"
+version = "0.1.0"
+description = "OpenClaw Flash Generator — built-in business flash-card toolkit for any instant."
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+keywords = ["flashcard", "business", "generator", "openclaw", "buiz-swarm"]
+dependencies = [
+    "flask>=3.0",
+]
+
+[project.scripts]
+openclaw = "openclaw.cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
