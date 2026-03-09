@@ -7,6 +7,19 @@
 
 BuizSwarm is a **Polsia-style autonomous company-building platform** that enables AI agents to create, manage, and grow businesses with minimal human intervention.
 
+## 📋 Table of Contents
+
+- [Features](#-features)
+- [Architecture](#-architecture)
+- [Project Structure](#-project-structure)
+- [Quick Start](#-quick-start)
+- [API Documentation](#-api-documentation)
+- [GitHub Copilot](#-github-copilot)
+- [Development](#-development)
+- [Deployment](#-deployment)
+- [Contributing](#-contributing)
+- [License](#-license)
+
 ## 🚀 Features
 
 ### Autonomous Operations
@@ -93,6 +106,45 @@ buiz-swarm/
 ├── frontend/                   # Angular dashboard
 ├── infrastructure/             # Terraform AWS infrastructure
 └── README.md
+```
+
+## 🤖 GitHub Copilot
+
+This repository is configured for **GitHub Copilot** with custom instructions and reusable prompts for common development tasks.
+
+### Copilot Instructions
+
+Copilot configuration is in `.github/copilot-instructions.md` which includes:
+- Repository overview and architecture
+- Coding standards (Python & TypeScript)
+- Agent development guidelines
+- MCP tool integration patterns
+- API development best practices
+- Database model conventions
+- Testing requirements
+
+### Reusable Prompts
+
+Pre-built prompts in `.github/prompts/` for common tasks:
+
+| Prompt | Use Case |
+|--------|----------|
+| `create-agent.md` | Create a new agent type |
+| `add-api-endpoint.md` | Add REST API endpoint |
+| `add-mcp-tool.md` | Add MCP tool for agents |
+| `fix-bug.md` | Fix bugs with regression tests |
+
+### Using Copilot
+
+1. Install GitHub Copilot extension in your IDE
+2. Review `.github/copilot-instructions.md` for project context
+3. Use prompts from `.github/prompts/` for guided development
+4. Follow coding standards outlined in instructions
+
+### Example: Creating a New Agent
+
+```markdown
+@copilot Using .github/prompts/create-agent.md, create a new DataAnalysisAgent that can analyze company metrics and generate reports.
 ```
 
 ## 🚀 Quick Start
@@ -313,11 +365,23 @@ GET /api/v1/system/stats
 
 ## 🤝 Contributing
 
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+
+### Quick Start for Contributors
+
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Commit changes (`git commit -m 'Add amazing feature'`)
 4. Push to branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
+
+### Development with Copilot
+
+This repo is Copilot-enabled. Use `.github/prompts/` for guided development:
+- Creating new agents
+- Adding API endpoints
+- Adding MCP tools
+- Fixing bugs
 
 ## 📄 License
 
