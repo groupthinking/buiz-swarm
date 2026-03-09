@@ -1,7 +1,7 @@
 # FastAPI and Web Framework
 fastapi==0.109.0
 uvicorn[standard]==0.27.0
-python-multipart==0.0.6
+python-multipart==0.0.22
 
 # Pydantic and Data Validation
 pydantic==2.5.3
@@ -38,7 +38,7 @@ github3.py==4.0.1
 sendgrid==6.11.0
 
 # Monitoring and Logging
-sentry-sdk==1.39.2
+sentry-sdk==1.45.1
 structlog==23.3.0
 
 # Testing
@@ -48,7 +48,7 @@ pytest-cov==4.1.0
 httpx==0.26.0
 
 # Development
-black==23.12.1
+black==24.3.0
 isort==5.13.2
 flake8==7.0.0
 mypy==1.8.0
