@@ -63,6 +63,8 @@ class CompanyService:
         self._orchestrator = get_orchestrator()
         self._profile_manager = get_company_profile_manager()
         self._agent_instances: Dict[str, Dict[str, BaseAgent]] = defaultdict(dict)
+        self._openclaw_backoff_until: Optional[datetime] = None
+        self._openclaw_backoff_reason: Optional[str] = None
         self._register_task_handlers()
 
     def _register_task_handlers(self) -> None:
@@ -113,6 +115,11 @@ class CompanyService:
             except json.JSONDecodeError:
                 continue
         return None
+
+    @staticmethod
+    def _has_static_bedrock_credentials() -> bool:
+        """Return whether explicit Bedrock credentials are configured."""
+        return bool(settings.AWS_ACCESS_KEY_ID and settings.AWS_SECRET_ACCESS_KEY)
 
     @staticmethod
     def _extract_currency_values(raw_value: Any) -> List[float]:
@@ -487,8 +494,12 @@ class CompanyService:
         if not agent:
             return {"error": f"Agent `{agent_type}` is not active for company {company_id}."}
 
-        response = await agent.generate_response(workflow["prompt"], use_memory=True)
-        execution_backend = "bedrock"
+        if self._has_static_bedrock_credentials():
+            response = await agent.generate_response(workflow["prompt"], use_memory=True)
+            execution_backend = "bedrock"
+        else:
+            response = "Error: Bedrock credentials unavailable"
+            execution_backend = "bedrock_unavailable"
         fallback_result: Optional[Dict[str, Any]] = None
         heuristic_result: Optional[Dict[str, Any]] = None
 
@@ -532,6 +543,14 @@ class CompanyService:
         if not openclaw_agent_id:
             return None
 
+        now = datetime.utcnow()
+        if self._openclaw_backoff_until and now < self._openclaw_backoff_until:
+            return {
+                "status": "cooldown",
+                "error": self._openclaw_backoff_reason or "OpenClaw fallback is temporarily cooling down.",
+                "retry_after": self._openclaw_backoff_until.isoformat(),
+            }
+
         tool_name = f"openclaw_{openclaw_agent_id}"
         mcp = get_mcp_client()
         result = await mcp.call_tool(
@@ -550,13 +569,19 @@ class CompanyService:
             },
         )
         if not result.success:
+            error_text = result.error or ""
+            if "rate limit" in error_text.lower():
+                self._openclaw_backoff_until = now + timedelta(minutes=5)
+                self._openclaw_backoff_reason = error_text
             return {
                 "tool_name": tool_name,
                 "status": "error",
-                "error": result.error,
+                "error": error_text,
             }
 
         payload = result.result if isinstance(result.result, dict) else {"raw": result.result}
+        self._openclaw_backoff_until = None
+        self._openclaw_backoff_reason = None
         return {
             "tool_name": tool_name,
             "status": str(payload.get("status") or "ok"),
