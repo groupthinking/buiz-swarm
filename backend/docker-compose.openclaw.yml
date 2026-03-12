@@ -1,0 +1,59 @@
+services:
+  openclaw-bridge:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    command:
+      - uvicorn
+      - app.openclaw_bridge:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "3006"
+      - --reload
+    environment:
+      OPENCLAW_HOME: ${OPENCLAW_HOME:-/openclaw}
+      OPENCLAW_GATEWAY_URL: ${OPENCLAW_GATEWAY_URL:-http://host.docker.internal:18789}
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
+      OPENCLAW_BRIDGE_URL: ${OPENCLAW_BRIDGE_URL:-http://openclaw-bridge:3006}
+      AWS_EC2_METADATA_DISABLED: "true"
+    volumes:
+      - ./app:/app/app
+      - ${OPENCLAW_HOST_DIR:-/Users/garvey/.openclaw}:${OPENCLAW_HOME:-/openclaw}:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "${BUIZSWARM_BRIDGE_PORT:-3016}:3006"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3006/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - buizswarm-network
+
+  api:
+    environment:
+      OPENCLAW_HOME: ${OPENCLAW_HOME:-/openclaw}
+      OPENCLAW_GATEWAY_URL: ${OPENCLAW_GATEWAY_URL:-http://host.docker.internal:18789}
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
+      OPENCLAW_BRIDGE_URL: ${OPENCLAW_BRIDGE_URL:-http://openclaw-bridge:3006}
+      AWS_EC2_METADATA_DISABLED: "true"
+    volumes:
+      - ${OPENCLAW_HOST_DIR:-/Users/garvey/.openclaw}:${OPENCLAW_HOME:-/openclaw}:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  worker:
+    environment:
+      OPENCLAW_HOME: ${OPENCLAW_HOME:-/openclaw}
+      OPENCLAW_GATEWAY_URL: ${OPENCLAW_GATEWAY_URL:-http://host.docker.internal:18789}
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
+      OPENCLAW_BRIDGE_URL: ${OPENCLAW_BRIDGE_URL:-http://openclaw-bridge:3006}
+      AWS_EC2_METADATA_DISABLED: "true"
+    volumes:
+      - ${OPENCLAW_HOST_DIR:-/Users/garvey/.openclaw}:${OPENCLAW_HOME:-/openclaw}:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

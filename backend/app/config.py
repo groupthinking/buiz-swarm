@@ -2,11 +2,39 @@
 Configuration management for BuizSwarm platform.
 """
 import os
+from pathlib import Path
 from functools import lru_cache
 from typing import Optional, List
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def _default_company_profile_manifest() -> str:
+    """Resolve the default company profile manifest path for host and container use."""
+    explicit = os.environ.get("COMPANY_PROFILE_MANIFEST")
+    if explicit:
+        return explicit
+
+    candidates = []
+    openclaw_home = os.environ.get("OPENCLAW_HOME")
+    if openclaw_home:
+        candidates.append(Path(openclaw_home) / "workspace/projects/profitmax/COMPANY_MANIFEST.json")
+
+    # Host checkout layout:
+    # .../profitmax/buiz-swarm/backend/app/config.py -> .../profitmax/COMPANY_MANIFEST.json
+    resolved = Path(__file__).resolve()
+    if len(resolved.parents) > 3:
+        candidates.append(resolved.parents[3] / "COMPANY_MANIFEST.json")
+
+    for candidate in candidates:
+        if candidate.exists():
+            return str(candidate)
+
+    if candidates:
+        return str(candidates[-1])
+
+    return "COMPANY_MANIFEST.json"
 
 
 class Settings(BaseSettings):
@@ -56,6 +84,17 @@ class Settings(BaseSettings):
     # MCP (Model Context Protocol)
     MCP_SERVER_URL: str = Field(default="http://localhost:3000", alias="MCP_SERVER_URL")
     MCP_TIMEOUT_SECONDS: int = 30
+
+    # OpenClaw runtime integration
+    OPENCLAW_HOME: str = Field(default="/openclaw", alias="OPENCLAW_HOME")
+    OPENCLAW_GATEWAY_URL: str = Field(default="http://host.docker.internal:18789", alias="OPENCLAW_GATEWAY_URL")
+    OPENCLAW_GATEWAY_TOKEN: Optional[str] = Field(default=None, alias="OPENCLAW_GATEWAY_TOKEN")
+    OPENCLAW_BRIDGE_URL: str = Field(default="http://openclaw-bridge:3006", alias="OPENCLAW_BRIDGE_URL")
+    DEFAULT_COMPANY_PROFILE: str = Field(default="profitmax", alias="DEFAULT_COMPANY_PROFILE")
+    COMPANY_PROFILE_MANIFEST: str = Field(
+        default_factory=_default_company_profile_manifest,
+        alias="COMPANY_PROFILE_MANIFEST"
+    )
     
     # Stripe
     STRIPE_SECRET_KEY: Optional[str] = Field(default=None, alias="STRIPE_SECRET_KEY")

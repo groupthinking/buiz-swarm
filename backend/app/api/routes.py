@@ -18,6 +18,7 @@ from ..core.agent_core import AgentCore, AgentState
 from ..core.swarm_orchestrator import SwarmOrchestrator, TaskPriority, get_orchestrator
 from ..core.bedrock_client import get_bedrock_client
 from ..core.mcp_client import get_mcp_client
+from ..core.company_profile import get_company_profile_manager
 from ..services.company_service import get_company_service
 from ..services.billing_service import get_billing_service
 from ..services.infrastructure_service import get_infrastructure_service
@@ -35,6 +36,8 @@ class CreateCompanyRequest(BaseModel):
     description: Optional[str] = None
     industry: Optional[str] = None
     website: Optional[str] = None
+    goal: Optional[str] = None
+    profile: Optional[str] = None
 
 
 class CreateTaskRequest(BaseModel):
@@ -60,6 +63,11 @@ class RevenueRequest(BaseModel):
     description: Optional[str] = None
 
 
+class WorkflowRunRequest(BaseModel):
+    """Request to execute a predefined company workflow."""
+    inputs: Dict[str, Any] = Field(default_factory=dict)
+
+
 # ============== Company Endpoints ==============
 
 @router.post("/companies", response_model=Dict[str, Any])
@@ -78,7 +86,9 @@ async def create_company(
         owner_id=owner_id,
         description=request.description,
         industry=request.industry,
-        website=request.website
+        website=request.website,
+        goal=request.goal,
+        profile=request.profile,
     )
     
     return {
@@ -126,6 +136,22 @@ async def get_company_status(company_id: str):
     return status_data
 
 
+@router.get("/profiles/current")
+async def get_current_profile():
+    """Return the active company profile manifest summary."""
+    return get_company_profile_manager().describe()
+
+
+@router.get("/profiles/current/skills")
+async def get_current_profile_skills():
+    """Return the curated operator skills for the active profile."""
+    profile_manager = get_company_profile_manager()
+    return {
+        "profile": profile_manager.describe().get("profile"),
+        "operator_skills": profile_manager.list_operator_skills(),
+    }
+
+
 @router.post("/companies/{company_id}/pause")
 async def pause_company(company_id: str):
     """Pause a company (stop daily cycles)."""
@@ -171,43 +197,75 @@ async def chat_with_agent(
     request: ChatRequest
 ):
     """Chat with a company agent."""
-    orchestrator = get_orchestrator()
-    
-    # Get company agents
-    agents = orchestrator._agent_core.get_company_agents(company_id)
-    
-    # Find agent of requested type
-    target_agent = None
-    for agent in agents:
-        if agent.context.agent_type == agent_type:
-            target_agent = agent
-            break
-    
+    service = get_company_service()
+    target_agent = await service.get_company_agent(company_id, agent_type)
+
     if not target_agent:
         raise HTTPException(
             status_code=404,
             detail=f"Agent of type {agent_type} not found for this company"
         )
-    
-    # Generate response using Bedrock
-    bedrock = get_bedrock_client()
-    
-    from ..core.bedrock_client import BedrockMessage
-    messages = [
-        BedrockMessage.system(f"You are the {agent_type} agent for this company."),
-        BedrockMessage.user(request.message)
-    ]
-    
-    response = await bedrock.generate(
-        messages=messages,
-        session_id=request.session_id or f"{company_id}:{agent_type}"
-    )
-    
+
+    response = await target_agent.generate_response(request.message, use_memory=True)
+
     return {
-        "response": response.content,
+        "response": response,
         "agent_type": agent_type,
-        "session_id": request.session_id
+        "session_id": request.session_id or f"{target_agent.agent_id}:{company_id}",
+        "profile": target_agent.config.metadata.get("profile"),
+        "profile_sources": target_agent.config.metadata.get("profile_sources", []),
     }
+
+
+@router.get("/companies/{company_id}/agents/{agent_type}/profile")
+async def get_agent_profile(company_id: str, agent_type: str):
+    """Return the runtime profile and prompt overlay metadata for a company agent."""
+    service = get_company_service()
+    target_agent = await service.get_company_agent(company_id, agent_type)
+    if not target_agent:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Agent of type {agent_type} not found for this company"
+        )
+
+    return {
+        "company_id": company_id,
+        "agent_type": agent_type,
+        "profile": target_agent.config.metadata.get("profile"),
+        "goal": target_agent.config.metadata.get("profile_goal"),
+        "sources": target_agent.config.metadata.get("profile_sources", []),
+        "system_prompt_preview": target_agent.config.system_prompt[:2000],
+    }
+
+
+@router.get("/companies/{company_id}/workflows")
+async def list_company_workflows(company_id: str):
+    """Return the revenue workflow library for a company."""
+    service = get_company_service()
+    workflows = await service.list_company_workflows(company_id)
+    if not workflows:
+        raise HTTPException(status_code=404, detail="Company not found")
+    return workflows
+
+
+@router.post("/companies/{company_id}/workflows/{workflow_id}/run")
+async def run_company_workflow(
+    company_id: str,
+    workflow_id: str,
+    request: WorkflowRunRequest,
+):
+    """Execute a predefined workflow against the assigned company agent."""
+    service = get_company_service()
+    result = await service.run_company_workflow(
+        company_id=company_id,
+        workflow_id=workflow_id,
+        inputs=request.inputs,
+    )
+    if not result:
+        raise HTTPException(status_code=404, detail="Company not found")
+    if result.get("error"):
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
 
 
 @router.post("/companies/{company_id}/daily-cycle")

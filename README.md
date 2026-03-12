@@ -7,6 +7,10 @@
 
 BuizSwarm is a **Polsia-style autonomous company-building platform** that enables AI agents to create, manage, and grow businesses with minimal human intervention.
 
+OpenClaw integration: the backend can register an `openclaw` MCP server preset that talks to an HTTP bridge, and the bridge uses the OpenClaw gateway WebSocket with shared-secret auth from `OPENCLAW_GATEWAY_TOKEN` or the mounted `~/.openclaw/openclaw.json`.
+
+ProfitMax profile: the vendored ProfitMax workspace now exposes a workflow library on top of the imported role packs. The first revenue workflows are `lead_qualification`, `outbound_personalization`, and `offer_pricing_review`, and each workflow carries a curated operator-skill stack for research, pricing, handoff, and execution.
+
 ## 📋 Table of Contents
 
 - [Features](#-features)
@@ -202,7 +206,7 @@ SENDGRID_API_KEY=SG.xxx
 ### 3. Run with Docker Compose
 
 ```bash
-docker-compose up -d
+docker compose -f backend/docker-compose.yml -f backend/docker-compose.openclaw.yml up -d
 ```
 
 This starts:
@@ -217,7 +221,53 @@ This starts:
 - **Health Check**: http://localhost:8000/health
 - **Dashboard**: http://localhost:4200 (after starting frontend)
 
+## OpenClaw Integration
+
+BuizSwarm should stay in `/Users/garvey/Dev/buiz-swarm`. Do not move the source into `~/.openclaw`.
+
+Use the Docker override at `backend/docker-compose.openclaw.yml` to mount the host OpenClaw runtime into the `api` and `worker` containers and point them at the host gateway:
+
+```bash
+cd backend
+docker compose -f docker-compose.yml -f docker-compose.openclaw.yml up -d
+# includes api, worker, db, redis, flower, and openclaw-bridge
+```
+
+The override expects these defaults:
+
+- `OPENCLAW_HOST_DIR=/Users/garvey/.openclaw`
+- `OPENCLAW_HOME=/openclaw` inside the containers
+- `OPENCLAW_GATEWAY_URL=http://host.docker.internal:18789`
+- `OPENCLAW_BRIDGE_URL=http://openclaw-bridge:3006`
+
+This keeps OpenClaw as the host-level runtime and lets BuizSwarm consume it without mixing source code into the runtime directory.
+
 ## 📚 API Documentation
+
+### ProfitMax Workflow Library
+
+```bash
+# Inspect the active ProfitMax profile and curated operator skills
+GET /api/v1/profiles/current
+GET /api/v1/profiles/current/skills
+
+# List the revenue workflows available to a company
+GET /api/v1/companies/{company_id}/workflows
+
+# Run a workflow
+POST /api/v1/companies/{company_id}/workflows/lead_qualification/run
+{
+  "inputs": {
+    "company_name": "Example Co",
+    "contact_name": "Jane Doe",
+    "lead_source": "telegram",
+    "pain_points": ["needs pipeline growth", "no follow-up system"],
+    "budget_signal": "$2k-$5k/mo",
+    "timeline": "this month",
+    "notes": "Warm inbound lead"
+  }
+}
+```
 
 ### Company Management
 

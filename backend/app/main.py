@@ -15,6 +15,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .config import settings
 from .api.routes import router
+from .core.company_profile import get_company_profile_manager
 from .core.swarm_orchestrator import get_orchestrator
 from .core.mcp_client import get_mcp_client, MCP_SERVER_PRESETS
 
@@ -35,6 +36,9 @@ async def lifespan(app: FastAPI):
     # Initialize orchestrator
     orchestrator = get_orchestrator()
     await orchestrator.initialize()
+
+    profile_manager = get_company_profile_manager()
+    logger.info("Company profile status: %s", profile_manager.describe())
     
     # Register MCP servers
     mcp = get_mcp_client()
@@ -44,9 +48,21 @@ async def lifespan(app: FastAPI):
                 server_id=server_id,
                 name=server_config["name"],
                 url=server_config["url"],
-                auto_connect=False  # Don't auto-connect in development
+                auto_connect=False
             )
             logger.info(f"Registered MCP server: {server_config['name']}")
+
+            if server_id == "openclaw":
+                connected = False
+                for attempt in range(1, 6):
+                    connected = await mcp.connect_server(server_id)
+                    if connected:
+                        logger.info("Connected to OpenClaw bridge on attempt %s", attempt)
+                        break
+                    logger.warning("OpenClaw bridge connection attempt %s failed", attempt)
+                    await asyncio.sleep(1)
+                if not connected:
+                    logger.warning("OpenClaw bridge is registered but not connected")
         except Exception as e:
             logger.warning(f"Failed to register MCP server {server_id}: {e}")
     

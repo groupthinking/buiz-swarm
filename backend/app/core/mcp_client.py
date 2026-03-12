@@ -558,4 +558,9 @@ MCP_SERVER_PRESETS = {
         "url": "http://localhost:3005",
         "description": "Send messages and interact with Slack workspaces"
     },
+    "openclaw": {
+        "name": "OpenClaw Bridge",
+        "url": settings.OPENCLAW_BRIDGE_URL,
+        "description": "Use the local OpenClaw runtime through the bridge service"
+    },
 }
