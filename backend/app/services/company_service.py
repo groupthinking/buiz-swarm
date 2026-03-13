@@ -117,8 +117,10 @@ class CompanyService:
         return None
 
     @staticmethod
-    def _has_static_bedrock_credentials() -> bool:
-        """Return whether explicit Bedrock credentials are configured."""
+    def _has_bedrock_credentials() -> bool:
+        """Return whether any explicit Bedrock auth is configured."""
+        if settings.AWS_BEARER_TOKEN_BEDROCK:
+            return True
         return bool(settings.AWS_ACCESS_KEY_ID and settings.AWS_SECRET_ACCESS_KEY)
 
     @staticmethod
@@ -494,7 +496,10 @@ class CompanyService:
         if not agent:
             return {"error": f"Agent `{agent_type}` is not active for company {company_id}."}
 
-        if self._has_static_bedrock_credentials():
+        bedrock_model_id = settings.BEDROCK_MODEL_ID if self._has_bedrock_credentials() else None
+        bedrock_error: Optional[str] = None
+
+        if self._has_bedrock_credentials():
             response = await agent.generate_response(workflow["prompt"], use_memory=True)
             execution_backend = "bedrock"
         else:
@@ -504,6 +509,7 @@ class CompanyService:
         heuristic_result: Optional[Dict[str, Any]] = None
 
         if not response or response.startswith("Error:"):
+            bedrock_error = response.removeprefix("Error:").strip() if response else "Empty Bedrock response"
             fallback_result = await self._run_openclaw_workflow_fallback(
                 workflow=workflow,
                 company=company,
@@ -523,6 +529,8 @@ class CompanyService:
             "agent_type": agent_type,
             "task_type": workflow.get("task_type"),
             "execution_backend": execution_backend,
+            "bedrock_model_id": bedrock_model_id,
+            "bedrock_error": bedrock_error,
             "operator_skills": workflow.get("operator_skills", {}),
             "response": response,
             "parsed_response": self._maybe_parse_json(response),

@@ -31,6 +31,7 @@ class AgentConfig(BaseModel):
     agent_type: str
     capabilities: List[AgentCapability]
     system_prompt: str
+    metadata: Dict[str, Any] = Field(default_factory=dict)
     max_tokens: int = Field(default=4096)
     temperature: float = Field(default=0.7)
     enable_mcp_tools: bool = Field(default=True)

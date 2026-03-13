@@ -457,6 +457,30 @@ Provide the setup plan in JSON format with:
                 infrastructure_type=params.get("infrastructure_type", "web_server"),
                 config=params.get("config", {})
             )
+
+        elif task_type == TaskType.DECISION_MAKING.value:
+            decision = params.get("decision", {})
+            prompt = f"""The CEO has delegated this strategic decision to Engineering:
+
+{json.dumps(decision, indent=2)}
+
+Produce an execution plan in JSON with:
+- objective
+- implementation_steps
+- dependencies
+- risks
+- success_metrics
+"""
+            response = await self.generate_response(prompt, use_memory=True)
+            try:
+                plan = json.loads(response)
+            except json.JSONDecodeError:
+                plan = {"plan": response, "parsed": False}
+            return {
+                "success": True,
+                "decision": decision,
+                "execution_plan": plan,
+            }
         
         else:
             return await super().execute_task(task_context)

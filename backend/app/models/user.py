@@ -225,7 +225,7 @@ class TeamInvitation(BaseModel):
 
 
 # SQLAlchemy model
-from sqlalchemy import Column, String, DateTime, Boolean, JSON, Enum as SQLEnum
+from sqlalchemy import Column, String, DateTime, Boolean, Integer, JSON, Enum as SQLEnum
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
@@ -268,4 +268,4 @@ class UserDB(Base):
     
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    metadata = Column(JSON, default=dict)
+    user_metadata = Column("metadata", JSON, default=dict)

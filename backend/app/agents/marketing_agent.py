@@ -516,6 +516,30 @@ Format as JSON:
         
         elif task_type == "analyze_campaign":
             return await self.analyze_campaign(params.get("campaign_id", ""))
+
+        elif task_type == TaskType.DECISION_MAKING.value:
+            decision = params.get("decision", {})
+            prompt = f"""The CEO has delegated this strategic decision to Marketing:
+
+{json.dumps(decision, indent=2)}
+
+Produce a marketing execution plan in JSON with:
+- objective
+- campaign_or_content_moves
+- target_audience
+- distribution_channels
+- metrics
+"""
+            response = await self.generate_response(prompt, use_memory=True)
+            try:
+                plan = json.loads(response)
+            except json.JSONDecodeError:
+                plan = {"plan": response, "parsed": False}
+            return {
+                "success": True,
+                "decision": decision,
+                "execution_plan": plan,
+            }
         
         else:
             return await super().execute_task(task_context)

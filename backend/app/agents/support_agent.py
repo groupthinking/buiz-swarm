@@ -482,6 +482,30 @@ Provide response in JSON format:
         
         elif task_type == "get_metrics":
             return await self.get_support_metrics()
+
+        elif task_type == TaskType.DECISION_MAKING.value:
+            decision = params.get("decision", {})
+            prompt = f"""The CEO has delegated this strategic decision to Support:
+
+{json.dumps(decision, indent=2)}
+
+Produce a support execution plan in JSON with:
+- objective
+- customer_impact
+- response_or_resolution_steps
+- escalation_rules
+- success_metrics
+"""
+            response = await self.generate_response(prompt, use_memory=True)
+            try:
+                plan = json.loads(response)
+            except json.JSONDecodeError:
+                plan = {"plan": response, "parsed": False}
+            return {
+                "success": True,
+                "decision": decision,
+                "execution_plan": plan,
+            }
         
         else:
             return await super().execute_task(task_context)

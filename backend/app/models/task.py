@@ -265,4 +265,4 @@ class TaskDB(Base):
     execution_logs = Column(JSON, default=list)
     
     tags = Column(JSON, default=list)
-    metadata = Column(JSON, default=dict)
+    task_metadata = Column("metadata", JSON, default=dict)

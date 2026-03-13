@@ -77,7 +77,8 @@ class Settings(BaseSettings):
     AWS_REGION: str = Field(default="us-east-1", alias="AWS_REGION")
     AWS_ACCESS_KEY_ID: Optional[str] = Field(default=None, alias="AWS_ACCESS_KEY_ID")
     AWS_SECRET_ACCESS_KEY: Optional[str] = Field(default=None, alias="AWS_SECRET_ACCESS_KEY")
-    BEDROCK_MODEL_ID: str = Field(default="anthropic.claude-3-sonnet-20240229-v1:0", alias="BEDROCK_MODEL_ID")
+    AWS_BEARER_TOKEN_BEDROCK: Optional[str] = Field(default=None, alias="AWS_BEARER_TOKEN_BEDROCK")
+    BEDROCK_MODEL_ID: str = Field(default="us.anthropic.claude-sonnet-4-6", alias="BEDROCK_MODEL_ID")
     BEDROCK_MAX_TOKENS: int = 4096
     BEDROCK_TEMPERATURE: float = 0.7
     

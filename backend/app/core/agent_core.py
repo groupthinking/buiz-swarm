@@ -37,11 +37,14 @@ class AgentState(str, Enum):
 class AgentCapability(str, Enum):
     """Agent capability types."""
     STRATEGIC = "strategic"
+    DECISION_MAKING = "decision_making"
     ENGINEERING = "engineering"
     MARKETING = "marketing"
     SUPPORT = "support"
     ANALYSIS = "analysis"
     INFRASTRUCTURE = "infrastructure"
+    CONTENT_CREATION = "content_creation"
+    COMMUNICATION = "communication"
 
 
 class AgentMessageType(str, Enum):

@@ -352,6 +352,11 @@ Make decisions in this JSON format:
             agent_type = decision.get("type")
             
             if agent_type in ["engineering", "marketing", "support"]:
+                capability_map = {
+                    "engineering": [AgentCapability.ENGINEERING],
+                    "marketing": [AgentCapability.MARKETING],
+                    "support": [AgentCapability.SUPPORT],
+                }
                 # Create task for the appropriate agent
                 task = Task(
                     company_id=self.company_id,
@@ -359,11 +364,16 @@ Make decisions in this JSON format:
                     priority=TaskPriority.HIGH,
                     title=decision.get("action", "Strategic task"),
                     description=decision.get("rationale", ""),
+                    required_capabilities=capability_map.get(agent_type, []),
                     parameters={
                         "decision": decision,
-                        "expected_impact": decision.get("expected_impact", "medium")
+                        "expected_impact": decision.get("expected_impact", "medium"),
+                        "agent_type": agent_type,
                     },
-                    metadata={"source": "ceo_daily_cycle"}
+                    metadata={
+                        "source": "ceo_daily_cycle",
+                        "target_agent_type": agent_type,
+                    }
                 )
                 
                 # Submit to orchestrator

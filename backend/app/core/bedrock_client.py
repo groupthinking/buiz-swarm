@@ -6,6 +6,7 @@ for AI agents in the BuizSwarm platform.
 """
 import json
 import logging
+import os
 from dataclasses import dataclass, field
 from typing import Any, AsyncIterator, Callable, Dict, List, Optional, TypeVar, Union
 from datetime import datetime
@@ -188,13 +189,21 @@ class BedrockClient:
             region_name=self.region,
             retries={"max_attempts": 3, "mode": "adaptive"}
         )
-        
+
         client_kwargs = {"config": config}
         if settings.AWS_ACCESS_KEY_ID and settings.AWS_SECRET_ACCESS_KEY:
             client_kwargs["aws_access_key_id"] = settings.AWS_ACCESS_KEY_ID
             client_kwargs["aws_secret_access_key"] = settings.AWS_SECRET_ACCESS_KEY
-        
+            auth_mode = "static_keys"
+        elif settings.AWS_BEARER_TOKEN_BEDROCK:
+            # Bedrock bearer tokens are discovered through process env.
+            os.environ["AWS_BEARER_TOKEN_BEDROCK"] = settings.AWS_BEARER_TOKEN_BEDROCK
+            auth_mode = "bearer_token"
+        else:
+            auth_mode = "ambient"
+
         self.client = boto3.client("bedrock-runtime", **client_kwargs)
+        logger.info("Initialized Bedrock runtime client using %s auth", auth_mode)
         
         # Tool registry
         self._tools: Dict[str, BedrockTool] = {}

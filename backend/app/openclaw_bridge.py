@@ -125,7 +125,12 @@ class OpenClawGatewayClient:
         await self.close()
 
     async def connect(self) -> None:
-        self._ws = await websockets.connect(self.url, max_size=25 * 1024 * 1024, open_timeout=DEFAULT_GATEWAY_TIMEOUT_MS / 1000)
+        self._ws = await websockets.connect(
+            self.url,
+            max_size=25 * 1024 * 1024,
+            open_timeout=DEFAULT_GATEWAY_TIMEOUT_MS / 1000,
+            ping_interval=None,
+        )
         challenge = await self._recv_until_connect_challenge()
         nonce = (challenge.get("payload") or {}).get("nonce")
         if not isinstance(nonce, str) or not nonce.strip():
@@ -277,6 +282,99 @@ class OpenClawGatewayClient:
         return json.loads(raw)
 
 
+class PersistentGatewayManager:
+    """Single long-lived gateway connection reused across bridge requests."""
+
+    def __init__(
+        self,
+        url: str,
+        *,
+        token: Optional[str] = None,
+        password: Optional[str] = None,
+        auth_source: Optional[str] = None,
+    ):
+        self.url = url
+        self.token = token
+        self.password = password
+        self.auth_source = auth_source
+        self._client: Optional[OpenClawGatewayClient] = None
+        self._lock = asyncio.Lock()
+
+    async def connect(self) -> None:
+        async with self._lock:
+            await self._ensure_connected_locked()
+
+    async def close(self) -> None:
+        async with self._lock:
+            await self._reset_locked()
+
+    async def call(
+        self,
+        method: str,
+        params: Optional[Dict[str, Any]] = None,
+        *,
+        timeout_ms: int = DEFAULT_GATEWAY_TIMEOUT_MS,
+    ) -> Dict[str, Any]:
+        async with self._lock:
+            client = await self._ensure_connected_locked()
+            try:
+                return await client.call(method, params or {}, timeout_ms=timeout_ms)
+            except GatewayBridgeError as exc:
+                if not self._should_reconnect(exc):
+                    raise
+                logger.warning("Gateway call %s lost connection, reconnecting once: %s", method, exc)
+                await self._reset_locked()
+                client = await self._ensure_connected_locked()
+                return await client.call(method, params or {}, timeout_ms=timeout_ms)
+
+    async def run_agent(self, params: Dict[str, Any], *, timeout_seconds: int) -> Dict[str, Any]:
+        async with self._lock:
+            client = await self._ensure_connected_locked()
+            try:
+                return await client.run_agent(params, timeout_seconds=timeout_seconds)
+            except GatewayBridgeError as exc:
+                if not self._should_reconnect(exc):
+                    raise
+                logger.warning("Gateway agent run lost connection, reconnecting once: %s", exc)
+                await self._reset_locked()
+                client = await self._ensure_connected_locked()
+                return await client.run_agent(params, timeout_seconds=timeout_seconds)
+
+    async def _ensure_connected_locked(self) -> OpenClawGatewayClient:
+        if self._client is None:
+            client = OpenClawGatewayClient(self.url, token=self.token, password=self.password)
+            try:
+                await client.connect()
+            except Exception:
+                await client.close()
+                raise
+            self._client = client
+            logger.info("Persistent OpenClaw gateway session established")
+        return self._client
+
+    async def _reset_locked(self) -> None:
+        if self._client is None:
+            return
+        try:
+            await self._client.close()
+        finally:
+            self._client = None
+
+    @staticmethod
+    def _should_reconnect(exc: GatewayBridgeError) -> bool:
+        message = str(exc).lower()
+        return any(
+            token in message
+            for token in (
+                "connection is closed",
+                "gateway closed",
+                "gateway not connected",
+                "gateway receive timeout",
+                "connect challenge timeout",
+            )
+        )
+
+
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -324,6 +422,25 @@ def _resolve_gateway_auth(config: Dict[str, Any]) -> Dict[str, Optional[str]]:
         return {"token": None, "password": config_password, "source": "config"}
 
     raise GatewayBridgeError("OpenClaw gateway auth is not configured. Set OPENCLAW_GATEWAY_TOKEN or gateway.auth.token.")
+
+
+def _build_gateway_manager(config: Optional[Dict[str, Any]] = None) -> PersistentGatewayManager:
+    config = config or _load_config()
+    auth = _resolve_gateway_auth(config)
+    return PersistentGatewayManager(
+        _resolve_gateway_ws_url(config),
+        token=auth.get("token"),
+        password=auth.get("password"),
+        auth_source=auth.get("source"),
+    )
+
+
+def _gateway_manager(config: Optional[Dict[str, Any]] = None) -> PersistentGatewayManager:
+    manager = getattr(app.state, "gateway_manager", None)
+    if manager is None:
+        manager = _build_gateway_manager(config)
+        app.state.gateway_manager = manager
+    return manager
 
 
 def _configured_agents(config: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
@@ -553,16 +670,11 @@ async def _poll_for_reply(gateway: OpenClawGatewayClient, session_key: str, sinc
 async def _gateway_status(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     config = config or _load_config()
     try:
-        auth = _resolve_gateway_auth(config)
-        async with OpenClawGatewayClient(
-            _resolve_gateway_ws_url(config),
-            token=auth.get("token"),
-            password=auth.get("password"),
-        ) as gateway:
-            health = await gateway.call("health", {}, timeout_ms=DEFAULT_GATEWAY_TIMEOUT_MS)
+        manager = _gateway_manager(config)
+        health = await manager.call("health", {}, timeout_ms=DEFAULT_GATEWAY_TIMEOUT_MS)
         return {
             "reachable": True,
-            "auth_source": auth.get("source"),
+            "auth_source": manager.auth_source,
             "default_agent_id": health.get("defaultAgentId"),
             "agent_count": len(health.get("agents", [])),
             "channels": health.get("channelOrder", []),
@@ -577,30 +689,24 @@ async def _invoke_agent(agent: Dict[str, Any], args: Dict[str, Any]) -> Dict[str
         raise ValueError("Missing required parameter: task")
 
     config = _load_config()
-    auth = _resolve_gateway_auth(config)
     mode = str(args.get("mode", "execute") or "execute")
     timeout_seconds = int(args.get("timeout_seconds") or DEFAULT_EXECUTION_TIMEOUT_SECONDS)
     timeout_seconds = max(1, min(timeout_seconds, 300))
     session_key = _session_key_for_agent(agent["id"])
     idempotency_key = f"buizswarm-{agent['id']}-{uuid.uuid4()}"
     prompt = _render_task(task, args.get("context") or {}, mode)
-
-    async with OpenClawGatewayClient(
-        _resolve_gateway_ws_url(config),
-        token=auth.get("token"),
-        password=auth.get("password"),
-    ) as gateway:
-        run = await gateway.run_agent(
-            {
-                "message": prompt,
-                "agentId": agent["id"],
-                "sessionKey": session_key,
-                "timeout": timeout_seconds,
-                "deliver": False,
-                "idempotencyKey": idempotency_key,
-            },
-            timeout_seconds=timeout_seconds,
-        )
+    manager = _gateway_manager(config)
+    run = await manager.run_agent(
+        {
+            "message": prompt,
+            "agentId": agent["id"],
+            "sessionKey": session_key,
+            "timeout": timeout_seconds,
+            "deliver": False,
+            "idempotencyKey": idempotency_key,
+        },
+        timeout_seconds=timeout_seconds,
+    )
 
     accepted = run.get("accepted") or {}
     final = run.get("final") or {}
@@ -757,8 +863,26 @@ async def _handle_tool_call(name: str, args: Dict[str, Any]) -> Dict[str, Any]:
     raise ValueError(f"Unknown tool: {name}")
 
 
+@app.on_event("shutdown")
+async def shutdown_event() -> None:
+    manager = getattr(app.state, "gateway_manager", None)
+    if manager is not None:
+        await manager.close()
+        delattr(app.state, "gateway_manager")
+
+
 @app.get("/health")
 async def health() -> Dict[str, Any]:
+    return {
+        "status": "ok",
+        "config_present": _config_path().exists(),
+        "gateway_url": settings.OPENCLAW_GATEWAY_URL,
+        "timestamp": _utc_now(),
+    }
+
+
+@app.get("/health/deep")
+async def deep_health() -> Dict[str, Any]:
     config = _load_config()
     gateway_status = await _gateway_status(config)
     return {

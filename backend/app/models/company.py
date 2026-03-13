@@ -261,4 +261,4 @@ class CompanyDB(Base):
     
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    metadata = Column(JSON, default=dict)
+    company_metadata = Column("metadata", JSON, default=dict)
