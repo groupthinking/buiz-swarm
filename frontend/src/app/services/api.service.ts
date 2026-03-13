@@ -24,6 +24,10 @@ export class ApiService {
     return this.http.get(`${this.baseUrl}/companies/${id}`).toPromise();
   }
 
+  async getCompanyStatus(id: string): Promise<any> {
+    return this.http.get(`${this.baseUrl}/companies/${id}/status`).toPromise();
+  }
+
   async createCompany(data: any): Promise<any> {
     return this.http.post(`${this.baseUrl}/companies`, data).toPromise();
   }
