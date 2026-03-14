@@ -15,6 +15,10 @@ export const routes: Routes = [
     loadComponent: () => import('./components/companies/companies.component').then(m => m.CompaniesComponent)
   },
   {
+    path: 'companies/new',
+    loadComponent: () => import('./components/company-create/company-create.component').then(m => m.CompanyCreateComponent)
+  },
+  {
     path: 'companies/:id',
     loadComponent: () => import('./components/company-detail/company-detail.component').then(m => m.CompanyDetailComponent)
   },

@@ -24,7 +24,7 @@ import { ApiService } from '../../services/api.service';
     <div class="companies-page">
       <div class="header">
         <h1>Companies</h1>
-        <button mat-raised-button color="primary" (click)="createCompany()">
+        <button mat-raised-button color="primary" routerLink="/companies/new">
           <mat-icon>add</mat-icon>
           New Company
         </button>
@@ -146,10 +146,6 @@ export class CompaniesComponent implements OnInit {
     }
   }
 
-  createCompany() {
-    // Open dialog to create company
-    console.log('Create company clicked');
-  }
 
   async deleteCompany(id: string) {
     if (confirm('Are you sure you want to delete this company?')) {
