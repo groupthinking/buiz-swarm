@@ -92,10 +92,8 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"] if settings.DEBUG else [
-        "https://buizswarm.com",
-        "https://app.buizswarm.com"
-    ],
+    allow_origins=["*"] if settings.DEBUG else settings.cors_allowed_origins,
+    allow_origin_regex=None if settings.DEBUG else settings.cors_allowed_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -2,6 +2,7 @@
 Configuration management for BuizSwarm platform.
 """
 import os
+import re
 from pathlib import Path
 from functools import lru_cache
 from typing import Optional, List
@@ -99,6 +100,7 @@ class Settings(BaseSettings):
     PLATFORM_ROOT_DOMAIN: str = Field(default="agentbroker.app", alias="PLATFORM_ROOT_DOMAIN")
     PLATFORM_APP_DOMAIN: str = Field(default="app.agentbroker.app", alias="PLATFORM_APP_DOMAIN")
     PLATFORM_MARKETING_DOMAIN: str = Field(default="agentbroker.app", alias="PLATFORM_MARKETING_DOMAIN")
+    PLATFORM_API_DOMAIN: str = Field(default="api.agentbroker.app", alias="PLATFORM_API_DOMAIN")
     PLATFORM_DEFAULT_TEMPLATE: str = Field(default="vercel-platforms-starter-kit", alias="PLATFORM_DEFAULT_TEMPLATE")
     PLATFORM_DEFAULT_DEPLOYMENT_TARGET: str = Field(default="vercel", alias="PLATFORM_DEFAULT_DEPLOYMENT_TARGET")
     PLATFORM_DEFAULT_TENANCY: str = Field(default="multi-tenant", alias="PLATFORM_DEFAULT_TENANCY")
@@ -144,6 +146,22 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
         """Check if running in production environment."""
         return self.ENVIRONMENT.lower() == "production"
+
+    @property
+    def cors_allowed_origins(self) -> List[str]:
+        """Get explicit public origins allowed in production."""
+        return [
+            f"https://{self.PLATFORM_MARKETING_DOMAIN}",
+            f"https://{self.PLATFORM_APP_DOMAIN}",
+            f"https://{self.PLATFORM_API_DOMAIN}",
+        ]
+
+    @property
+    def cors_allowed_origin_regex(self) -> str:
+        """Allow tenant subdomains and Vercel preview URLs in production."""
+        root = re.escape(self.PLATFORM_ROOT_DOMAIN)
+        preview = r"https://[a-z0-9-]+(?:-[a-z0-9-]+)*\.vercel\.app"
+        return rf"^(https://([a-z0-9-]+\.)?{root}|{preview})$"
     
     @property
     def database_async_url(self) -> str:

@@ -5,6 +5,7 @@ export const environment = {
   platformRootDomain: 'agentbroker.app',
   platformAppDomain: 'app.agentbroker.app',
   platformMarketingDomain: 'agentbroker.app',
+  platformApiDomain: 'api.agentbroker.app',
   platformTemplate: 'vercel-platforms-starter-kit',
   platformDeploymentTarget: 'vercel',
   platformTenancy: 'multi-tenant',

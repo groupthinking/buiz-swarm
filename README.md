@@ -9,6 +9,8 @@ BuizSwarm is a **Polsia-style autonomous company-building platform** that enable
 
 Canonical platform domain: `agentbroker.app`. The operator dashboard lives at `app.agentbroker.app`, and tenant businesses are intended to live under `*.agentbroker.app` with optional custom domains later.
 
+The backend API is intended to live at `api.agentbroker.app`. In production, the Angular dashboard should be deployed to Vercel and the Python API to a backend host such as Railway.
+
 OpenClaw integration: the backend can register an `openclaw` MCP server preset that talks to an HTTP bridge, and the bridge uses the OpenClaw gateway WebSocket with shared-secret auth from `OPENCLAW_GATEWAY_TOKEN` or the mounted `~/.openclaw/openclaw.json`.
 
 ProfitMax profile: the vendored ProfitMax workspace now exposes a workflow library on top of the imported role packs. The first revenue workflows are `lead_qualification`, `outbound_personalization`, and `offer_pricing_review`, and each workflow carries a curated operator-skill stack for research, pricing, handoff, and execution.

@@ -20,9 +20,7 @@ services:
       PLATFORM_ROOT_DOMAIN: ${PLATFORM_ROOT_DOMAIN:-agentbroker.app}
       PLATFORM_APP_DOMAIN: ${PLATFORM_APP_DOMAIN:-app.agentbroker.app}
       PLATFORM_MARKETING_DOMAIN: ${PLATFORM_MARKETING_DOMAIN:-agentbroker.app}
-      PLATFORM_ROOT_DOMAIN: ${PLATFORM_ROOT_DOMAIN:-agentbroker.app}
-      PLATFORM_APP_DOMAIN: ${PLATFORM_APP_DOMAIN:-app.agentbroker.app}
-      PLATFORM_MARKETING_DOMAIN: ${PLATFORM_MARKETING_DOMAIN:-agentbroker.app}
+      PLATFORM_API_DOMAIN: ${PLATFORM_API_DOMAIN:-api.agentbroker.app}
     volumes:
       - ./app:/app/app
       - ${OPENCLAW_HOST_DIR:-/Users/garvey/.openclaw}:${OPENCLAW_HOME:-/openclaw}:ro
@@ -49,6 +47,7 @@ services:
       PLATFORM_ROOT_DOMAIN: ${PLATFORM_ROOT_DOMAIN:-agentbroker.app}
       PLATFORM_APP_DOMAIN: ${PLATFORM_APP_DOMAIN:-app.agentbroker.app}
       PLATFORM_MARKETING_DOMAIN: ${PLATFORM_MARKETING_DOMAIN:-agentbroker.app}
+      PLATFORM_API_DOMAIN: ${PLATFORM_API_DOMAIN:-api.agentbroker.app}
     volumes:
       - ${OPENCLAW_HOST_DIR:-/Users/garvey/.openclaw}:${OPENCLAW_HOME:-/openclaw}:ro
     extra_hosts:
@@ -63,6 +62,10 @@ services:
       OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
       OPENCLAW_BRIDGE_URL: ${OPENCLAW_BRIDGE_URL:-http://openclaw-bridge:3006}
       AWS_EC2_METADATA_DISABLED: "true"
+      PLATFORM_ROOT_DOMAIN: ${PLATFORM_ROOT_DOMAIN:-agentbroker.app}
+      PLATFORM_APP_DOMAIN: ${PLATFORM_APP_DOMAIN:-app.agentbroker.app}
+      PLATFORM_MARKETING_DOMAIN: ${PLATFORM_MARKETING_DOMAIN:-agentbroker.app}
+      PLATFORM_API_DOMAIN: ${PLATFORM_API_DOMAIN:-api.agentbroker.app}
     volumes:
       - ${OPENCLAW_HOST_DIR:-/Users/garvey/.openclaw}:${OPENCLAW_HOME:-/openclaw}:ro
     extra_hosts:
