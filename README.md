@@ -7,6 +7,8 @@
 
 BuizSwarm is a **Polsia-style autonomous company-building platform** that enables AI agents to create, manage, and grow businesses with minimal human intervention.
 
+Canonical platform domain: `agentbroker.app`. The operator dashboard lives at `app.agentbroker.app`, and tenant businesses are intended to live under `*.agentbroker.app` with optional custom domains later.
+
 OpenClaw integration: the backend can register an `openclaw` MCP server preset that talks to an HTTP bridge, and the bridge uses the OpenClaw gateway WebSocket with shared-secret auth from `OPENCLAW_GATEWAY_TOKEN` or the mounted `~/.openclaw/openclaw.json`.
 
 ProfitMax profile: the vendored ProfitMax workspace now exposes a workflow library on top of the imported role packs. The first revenue workflows are `lead_qualification`, `outbound_personalization`, and `offer_pricing_review`, and each workflow carries a curated operator-skill stack for research, pricing, handoff, and execution.
@@ -210,16 +212,34 @@ docker compose -f backend/docker-compose.yml -f backend/docker-compose.openclaw.
 ```
 
 This starts:
-- FastAPI application on http://localhost:8000
+- FastAPI application on http://localhost:8010
+- OpenClaw bridge on http://localhost:3016
 - PostgreSQL database
 - Redis cache
 - Celery worker (background tasks)
 
 ### 4. Access the Application
 
-- **API Documentation**: http://localhost:8000/docs
-- **Health Check**: http://localhost:8000/health
+- **API Documentation**: http://localhost:8010/docs
+- **Health Check**: http://localhost:8010/health
+- **OpenClaw Bridge Health**: http://localhost:3016/health
 - **Dashboard**: http://localhost:4200 (after starting frontend)
+
+## Domain Strategy
+
+The first real platform domain is `agentbroker.app`.
+
+- Operator dashboard: `app.agentbroker.app`
+- Tenant businesses: `*.agentbroker.app`
+- Optional customer-owned domains: supported later via the stored `custom_domain` field
+
+Recommended Vercel setup:
+- Put the dashboard/frontend on the operator domain `app.agentbroker.app`
+- Route tenant businesses on a wildcard under `*.agentbroker.app`
+- Keep the backend/API on its own service and proxy `/api/*` from the dashboard domain in production
+- Use Vercel-managed nameservers when you want wildcard SSL and domain management in one place
+
+The business-creation flow now defaults to this domain model automatically.
 
 ## OpenClaw Integration
 

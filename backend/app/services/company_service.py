@@ -390,21 +390,25 @@ class CompanyService:
         """Build a Vercel-style multi-tenant platform blueprint."""
         incoming = blueprint or {}
         tenant_slug = self._sanitize_subdomain(incoming.get("requested_subdomain") or slug)
-        root_domain = (incoming.get("root_domain") or "").strip() or None
+        root_domain = (incoming.get("root_domain") or "").strip() or settings.PLATFORM_ROOT_DOMAIN
         custom_domain = (incoming.get("custom_domain") or "").strip() or None
         canonical_host = custom_domain or (f"{tenant_slug}.{root_domain}" if root_domain else None)
 
         return {
-            "template": incoming.get("template") or "vercel-platforms-starter-kit",
-            "deployment_target": incoming.get("deployment_target") or "vercel",
-            "tenancy": incoming.get("tenancy") or "multi-tenant",
-            "admin_surface": incoming.get("admin_surface") or "shared-dashboard",
+            "template": incoming.get("template") or settings.PLATFORM_DEFAULT_TEMPLATE,
+            "deployment_target": incoming.get("deployment_target") or settings.PLATFORM_DEFAULT_DEPLOYMENT_TARGET,
+            "tenancy": incoming.get("tenancy") or settings.PLATFORM_DEFAULT_TENANCY,
+            "admin_surface": incoming.get("admin_surface") or settings.PLATFORM_DEFAULT_ADMIN_SURFACE,
             "requested_subdomain": tenant_slug,
             "tenant_slug": tenant_slug,
             "root_domain": root_domain,
             "custom_domain": custom_domain,
             "canonical_host": canonical_host,
             "preview_url": f"https://{canonical_host}" if canonical_host else None,
+            "dashboard_domain": settings.PLATFORM_APP_DOMAIN,
+            "dashboard_url": f"https://{settings.PLATFORM_APP_DOMAIN}",
+            "marketing_domain": settings.PLATFORM_MARKETING_DOMAIN,
+            "marketing_url": f"https://{settings.PLATFORM_MARKETING_DOMAIN}",
             "status": "blueprint",
         }
 

@@ -8,6 +8,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 
+import { environment } from '../../../environments/environment';
 import { ApiService } from '../../services/api.service';
 
 @Component({
@@ -98,7 +99,7 @@ import { ApiService } from '../../services/api.service';
 
             <section class="section section--platform">
               <div class="section-title">Platform Blueprint</div>
-              <div class="section-copy">Modeled after a multi-tenant Vercel platform: shared admin surface, tenant routing, and custom domain readiness.</div>
+              <div class="section-copy">Modeled after a multi-tenant Vercel platform: shared admin surface, tenant routing, and custom domain readiness. Default root domain: {{ form.platform.rootDomain }}.</div>
 
               <mat-form-field appearance="outline">
                 <mat-label>Template</mat-label>
@@ -129,7 +130,7 @@ import { ApiService } from '../../services/api.service';
               <mat-form-field appearance="outline">
                 <mat-label>Root domain</mat-label>
                 <input matInput [(ngModel)]="form.platform.rootDomain" name="rootDomain" />
-                <mat-hint>Example: agentbroker.app</mat-hint>
+                <mat-hint>Default platform root: {{ environment.platformRootDomain }}</mat-hint>
               </mat-form-field>
 
               <mat-form-field appearance="outline" class="wide-field">
@@ -380,6 +381,8 @@ import { ApiService } from '../../services/api.service';
   `]
 })
 export class CompanyCreateComponent {
+  readonly environment = environment;
+
   form = {
     name: '',
     description: '',
@@ -388,12 +391,12 @@ export class CompanyCreateComponent {
     goal: '',
     profile: 'profitmax',
     platform: {
-      template: 'vercel-platforms-starter-kit',
-      deploymentTarget: 'vercel',
-      tenancy: 'multi-tenant',
-      adminSurface: 'shared-dashboard',
+      template: environment.platformTemplate,
+      deploymentTarget: environment.platformDeploymentTarget,
+      tenancy: environment.platformTenancy,
+      adminSurface: environment.platformAdminSurface,
       requestedSubdomain: '',
-      rootDomain: '',
+      rootDomain: environment.platformRootDomain,
       customDomain: ''
     },
     agent: {

@@ -96,6 +96,13 @@ class Settings(BaseSettings):
         default_factory=_default_company_profile_manifest,
         alias="COMPANY_PROFILE_MANIFEST"
     )
+    PLATFORM_ROOT_DOMAIN: str = Field(default="agentbroker.app", alias="PLATFORM_ROOT_DOMAIN")
+    PLATFORM_APP_DOMAIN: str = Field(default="app.agentbroker.app", alias="PLATFORM_APP_DOMAIN")
+    PLATFORM_MARKETING_DOMAIN: str = Field(default="agentbroker.app", alias="PLATFORM_MARKETING_DOMAIN")
+    PLATFORM_DEFAULT_TEMPLATE: str = Field(default="vercel-platforms-starter-kit", alias="PLATFORM_DEFAULT_TEMPLATE")
+    PLATFORM_DEFAULT_DEPLOYMENT_TARGET: str = Field(default="vercel", alias="PLATFORM_DEFAULT_DEPLOYMENT_TARGET")
+    PLATFORM_DEFAULT_TENANCY: str = Field(default="multi-tenant", alias="PLATFORM_DEFAULT_TENANCY")
+    PLATFORM_DEFAULT_ADMIN_SURFACE: str = Field(default="shared-dashboard", alias="PLATFORM_DEFAULT_ADMIN_SURFACE")
     
     # Stripe
     STRIPE_SECRET_KEY: Optional[str] = Field(default=None, alias="STRIPE_SECRET_KEY")

@@ -132,6 +132,14 @@ import { ApiService } from '../../services/api.service';
                       <span class="definition-label">Custom domain</span>
                       <strong>{{ platformBlueprint.custom_domain || 'none' }}</strong>
                     </div>
+                    <div>
+                      <span class="definition-label">Operator console</span>
+                      <strong>{{ platformBlueprint.dashboard_domain || 'app.agentbroker.app' }}</strong>
+                    </div>
+                    <div>
+                      <span class="definition-label">Marketing domain</span>
+                      <strong>{{ platformBlueprint.marketing_domain || 'agentbroker.app' }}</strong>
+                    </div>
                   </div>
                 </mat-card-content>
               </mat-card>
