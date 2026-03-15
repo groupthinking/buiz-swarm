@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from ..core.agent_core import AgentCore, AgentState
 from ..core.swarm_orchestrator import SwarmOrchestrator, TaskPriority, get_orchestrator
@@ -30,6 +30,37 @@ router = APIRouter(prefix="/api/v1")
 
 # ============== Request/Response Models ==============
 
+class PlatformBlueprintRequest(BaseModel):
+    """Multi-tenant deployment blueprint for a new business."""
+    template: str = "vercel-platforms-starter-kit"
+    deployment_target: str = "vercel"
+    tenancy: str = "multi-tenant"
+    admin_surface: str = "shared-dashboard"
+    requested_subdomain: Optional[str] = None
+    root_domain: Optional[str] = None
+    custom_domain: Optional[str] = None
+
+
+class AgentBlueprintRequest(BaseModel):
+    """Bedrock-aligned operating blueprint for a new business."""
+    model_config = ConfigDict(protected_namespaces=())
+
+    provider: str = "amazon-bedrock"
+    runtime: str = "agentcore-ready"
+    model_strategy: str = "specialized-agent-supervisor"
+    primary_job_to_be_done: Optional[str] = None
+    knowledge_sources: List[str] = Field(default_factory=list)
+    action_groups: List[str] = Field(default_factory=list)
+    scope_in: List[str] = Field(default_factory=list)
+    scope_out: List[str] = Field(default_factory=list)
+    session_attributes: List[str] = Field(default_factory=list)
+    prompt_session_attributes: List[str] = Field(default_factory=list)
+    guardrails: List[str] = Field(default_factory=list)
+    approval_points: List[str] = Field(default_factory=list)
+    evaluation_metrics: List[str] = Field(default_factory=list)
+    success_metrics: List[str] = Field(default_factory=list)
+
+
 class CreateCompanyRequest(BaseModel):
     """Request to create a new company."""
     name: str
@@ -38,6 +69,8 @@ class CreateCompanyRequest(BaseModel):
     website: Optional[str] = None
     goal: Optional[str] = None
     profile: Optional[str] = None
+    platform_blueprint: Optional[PlatformBlueprintRequest] = None
+    agent_blueprint: Optional[AgentBlueprintRequest] = None
 
 
 class CreateTaskRequest(BaseModel):
@@ -89,6 +122,8 @@ async def create_company(
         website=request.website,
         goal=request.goal,
         profile=request.profile,
+        platform_blueprint=request.platform_blueprint.model_dump(exclude_none=True) if request.platform_blueprint else None,
+        agent_blueprint=request.agent_blueprint.model_dump(exclude_none=True) if request.agent_blueprint else None,
     )
     
     return {
@@ -528,7 +563,10 @@ async def dashboard_overview():
                     "name": c.name,
                     "status": c.status.value,
                     "revenue": c.total_revenue_processed,
-                    "daily_cycles": c.daily_cycle_count
+                    "daily_cycles": c.daily_cycle_count,
+                    "profile": c.metadata.get("profile"),
+                    "deployment_target": (c.metadata.get("platform_blueprint") or {}).get("deployment_target"),
+                    "preview_url": (c.metadata.get("platform_blueprint") or {}).get("preview_url"),
                 }
                 for c in companies
             ]

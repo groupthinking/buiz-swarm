@@ -295,6 +295,8 @@ class CompanyService:
         website: Optional[str] = None,
         goal: Optional[str] = None,
         profile: Optional[str] = None,
+        platform_blueprint: Optional[Dict[str, Any]] = None,
+        agent_blueprint: Optional[Dict[str, Any]] = None,
     ) -> Company:
         """
         Create a new company.
@@ -311,7 +313,16 @@ class CompanyService:
         """
         # Generate slug
         slug = self._generate_slug(name)
-        
+        default_goal = goal or self._profile_manager.load_manifest().get("goal")
+        resolved_platform_blueprint = self._build_platform_blueprint(
+            slug=slug,
+            blueprint=platform_blueprint,
+        )
+        resolved_agent_blueprint = self._build_agent_blueprint(
+            goal=default_goal,
+            blueprint=agent_blueprint,
+        )
+
         # Create company
         company = Company(
             name=name,
@@ -323,7 +334,9 @@ class CompanyService:
             status=CompanyStatus.ONBOARDING,
             metadata={
                 "profile": profile or settings.DEFAULT_COMPANY_PROFILE,
-                "goal": goal or self._profile_manager.load_manifest().get("goal"),
+                "goal": default_goal,
+                "platform_blueprint": resolved_platform_blueprint,
+                "agent_blueprint": resolved_agent_blueprint,
             }
         )
         
@@ -352,6 +365,114 @@ class CompanyService:
             counter += 1
         
         return slug
+
+    def _sanitize_subdomain(self, value: Optional[str]) -> str:
+        """Normalize a requested tenant slug into a valid subdomain token."""
+        candidate = (value or "").strip().lower()
+        candidate = re.sub(r"[^a-z0-9-]+", "-", candidate)
+        candidate = re.sub(r"-+", "-", candidate).strip("-")
+        return candidate or "company"
+
+    def _clean_text_list(self, values: Optional[List[Any]]) -> List[str]:
+        """Normalize user-entered lists coming from the UI."""
+        cleaned: List[str] = []
+        for value in values or []:
+            item = str(value).strip()
+            if item:
+                cleaned.append(item)
+        return cleaned
+
+    def _build_platform_blueprint(
+        self,
+        slug: str,
+        blueprint: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Build a Vercel-style multi-tenant platform blueprint."""
+        incoming = blueprint or {}
+        tenant_slug = self._sanitize_subdomain(incoming.get("requested_subdomain") or slug)
+        root_domain = (incoming.get("root_domain") or "").strip() or None
+        custom_domain = (incoming.get("custom_domain") or "").strip() or None
+        canonical_host = custom_domain or (f"{tenant_slug}.{root_domain}" if root_domain else None)
+
+        return {
+            "template": incoming.get("template") or "vercel-platforms-starter-kit",
+            "deployment_target": incoming.get("deployment_target") or "vercel",
+            "tenancy": incoming.get("tenancy") or "multi-tenant",
+            "admin_surface": incoming.get("admin_surface") or "shared-dashboard",
+            "requested_subdomain": tenant_slug,
+            "tenant_slug": tenant_slug,
+            "root_domain": root_domain,
+            "custom_domain": custom_domain,
+            "canonical_host": canonical_host,
+            "preview_url": f"https://{canonical_host}" if canonical_host else None,
+            "status": "blueprint",
+        }
+
+    def _build_agent_blueprint(
+        self,
+        goal: Optional[str],
+        blueprint: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Build a Bedrock-aligned agent operating blueprint."""
+        incoming = blueprint or {}
+        primary_job = (incoming.get("primary_job_to_be_done") or goal or "Grow revenue with a tightly scoped AI workforce.").strip()
+
+        return {
+            "provider": incoming.get("provider") or "amazon-bedrock",
+            "runtime": incoming.get("runtime") or "agentcore-ready",
+            "model_strategy": incoming.get("model_strategy") or "specialized-agent-supervisor",
+            "primary_job_to_be_done": primary_job,
+            "knowledge_sources": self._clean_text_list(incoming.get("knowledge_sources")) or [
+                "Product and offer documentation",
+                "CRM and pipeline data",
+                "Website and positioning copy",
+            ],
+            "action_groups": self._clean_text_list(incoming.get("action_groups")) or [
+                "lead qualification",
+                "outbound personalization",
+                "offer pricing review",
+            ],
+            "scope_in": self._clean_text_list(incoming.get("scope_in")) or [
+                "Revenue operations",
+                "Lead handling",
+                "Pipeline support",
+            ],
+            "scope_out": self._clean_text_list(incoming.get("scope_out")) or [
+                "Irreversible billing changes",
+                "Legal commitments",
+                "High-risk account actions without approval",
+            ],
+            "session_attributes": self._clean_text_list(incoming.get("session_attributes")) or [
+                "company_id",
+                "industry",
+                "operator_role",
+            ],
+            "prompt_session_attributes": self._clean_text_list(incoming.get("prompt_session_attributes")) or [
+                "north_star_goal",
+                "active_offer",
+                "current_campaign_window",
+            ],
+            "guardrails": self._clean_text_list(incoming.get("guardrails")) or [
+                "Ground responses in approved company sources",
+                "Escalate pricing and policy exceptions for human approval",
+            ],
+            "approval_points": self._clean_text_list(incoming.get("approval_points")) or [
+                "New pricing changes",
+                "Customer-facing commitments",
+                "Outbound launches to new lists",
+            ],
+            "evaluation_metrics": self._clean_text_list(incoming.get("evaluation_metrics")) or [
+                "grounding_quality",
+                "task_success_rate",
+                "tool_success_rate",
+                "latency",
+            ],
+            "success_metrics": self._clean_text_list(incoming.get("success_metrics")) or [
+                "qualified_opportunities",
+                "meetings_booked",
+                "pipeline_value_influenced",
+            ],
+        }
     
     async def _onboard_company(self, company_id: str) -> None:
         """Run company onboarding process."""
@@ -427,12 +548,17 @@ class CompanyService:
         """Provision infrastructure for a company."""
         # This would integrate with InfrastructureService
         # For now, just set pending status
+        platform_blueprint = company.metadata.get("platform_blueprint") or {}
         company.infrastructure = InfrastructureConfig(
+            web_server_provider=platform_blueprint.get("deployment_target") or "vercel",
+            web_server_url=platform_blueprint.get("preview_url"),
             web_server_status="pending",
             database_status="pending",
             email_status="pending",
             github_status="pending",
-            stripe_status="pending"
+            stripe_status="pending",
+            domain_name=platform_blueprint.get("custom_domain") or platform_blueprint.get("canonical_host"),
+            dns_status="pending" if platform_blueprint.get("canonical_host") else "not_configured",
         )
     
     async def get_company(self, company_id: str) -> Optional[Company]:
@@ -679,6 +805,11 @@ class CompanyService:
                 "last_daily_cycle_at": company.last_daily_cycle_at.isoformat() if company.last_daily_cycle_at else None,
                 "profile": company.metadata.get("profile"),
                 "goal": company.metadata.get("goal"),
+                "industry": company.industry,
+                "website": company.website,
+                "description": company.description,
+                "platform_blueprint": company.metadata.get("platform_blueprint", {}),
+                "agent_blueprint": company.metadata.get("agent_blueprint", {}),
             },
             "agents": [
                 {
