@@ -1,0 +1,221 @@
+{
+  "name": "profitmax",
+  "goal": "Maximize profitable automated business operations with OpenClaw as the operator control plane.",
+  "control_plane": {
+    "runtime": "openclaw",
+    "workspace_path": "/Users/garvey/.openclaw",
+    "workspace_root": "/Users/garvey/.openclaw/workspace",
+    "gateway_url": "http://127.0.0.1:18789",
+    "operator_channels": [
+      "telegram",
+      "local-control-ui"
+    ]
+  },
+  "execution": {
+    "app": "buiz-swarm",
+    "app_path": "buiz-swarm",
+    "runtime": "docker",
+    "bridge": {
+      "implementation": "buiz-swarm/backend/app/openclaw_bridge.py",
+      "compose_overlay": "buiz-swarm/backend/docker-compose.openclaw.yml",
+      "auth_source": [
+        "OPENCLAW_GATEWAY_TOKEN",
+        "~/.openclaw/openclaw.json"
+      ]
+    }
+  },
+  "reference_packs": {
+    "agency": {
+      "path": "agency-pack",
+      "purpose": "reusable role prompts, project orchestration, QA loops"
+    },
+    "paperclip": {
+      "path": "paperclip-pack",
+      "purpose": "company/control-plane model, heartbeats, adapter patterns"
+    }
+  },
+  "operator_skills": {
+    "playwright": {
+      "purpose": "Inspect live funnels, scrape positioning, validate landing pages, and verify competitor flows."
+    },
+    "spreadsheet": {
+      "purpose": "Model unit economics, pricing, CAC/LTV assumptions, and offer profitability."
+    },
+    "notion-research-documentation": {
+      "purpose": "Capture market research, account briefs, and competitor intelligence into reusable docs."
+    },
+    "notion-knowledge-capture": {
+      "purpose": "Turn winning workflows and decisions into SOPs that operators can reuse."
+    },
+    "linear": {
+      "purpose": "Convert profitable ideas into execution queues, owners, and operational follow-through."
+    },
+    "vercel-react-best-practices": {
+      "purpose": "Tighten landing page speed and conversion surfaces when engineering ships growth pages."
+    }
+  },
+  "roles": {
+    "ceo": {
+      "buiz_agent": "buiz-swarm/backend/app/agents/ceo_agent.py",
+      "role_pack": [
+        "agency-pack/specialized/agents-orchestrator.md",
+        "agency-pack/project-management/project-management-project-shepherd.md",
+        "agency-pack/strategy/QUICKSTART.md"
+      ],
+      "control_notes": [
+        "paperclip-pack/doc/PRODUCT.md"
+      ]
+    },
+    "engineering": {
+      "buiz_agent": "buiz-swarm/backend/app/agents/engineering_agent.py",
+      "role_pack": [
+        "agency-pack/engineering/engineering-backend-architect.md",
+        "agency-pack/engineering/engineering-frontend-developer.md",
+        "agency-pack/engineering/engineering-devops-automator.md",
+        "agency-pack/testing/testing-api-tester.md",
+        "agency-pack/testing/testing-reality-checker.md"
+      ]
+    },
+    "marketing": {
+      "buiz_agent": "buiz-swarm/backend/app/agents/marketing_agent.py",
+      "role_pack": [
+        "agency-pack/marketing/marketing-growth-hacker.md",
+        "agency-pack/marketing/marketing-content-creator.md",
+        "agency-pack/specialized/data-analytics-reporter.md"
+      ]
+    },
+    "support": {
+      "buiz_agent": "buiz-swarm/backend/app/agents/support_agent.py",
+      "role_pack": [
+        "agency-pack/support/support-support-responder.md",
+        "agency-pack/support/support-finance-tracker.md",
+        "agency-pack/testing/testing-evidence-collector.md"
+      ]
+    }
+  },
+  "workflows": {
+    "lead_qualification": {
+      "name": "Lead Qualification",
+      "agent_type": "support",
+      "task_type": "customer_support",
+      "openclaw_agent_id": "deal-ops",
+      "openclaw_mode": "report",
+      "summary": "Turn inbound lead signals into a qualification verdict, response draft, and next revenue action.",
+      "operator_skills": [
+        "playwright",
+        "notion-research-documentation",
+        "notion-knowledge-capture"
+      ],
+      "inputs": [
+        "company_name",
+        "contact_name",
+        "lead_source",
+        "pain_points",
+        "budget_signal",
+        "timeline",
+        "notes"
+      ],
+      "execution_prompt": [
+        "Qualify the lead against ICP fit, urgency, budget potential, and ease of close.",
+        "Prioritize booked revenue and short sales cycles over vanity opportunities.",
+        "Recommend one next action with the highest expected return."
+      ],
+      "output_requirements": [
+        "A short summary of the lead.",
+        "An ICP fit score from 1 to 10.",
+        "A qualification verdict: disqualify, nurture, sales_call, or proposal.",
+        "Key risks or missing information.",
+        "A suggested next action.",
+        "A draft reply the operator can send."
+      ]
+    },
+    "outbound_personalization": {
+      "name": "Outbound Personalization",
+      "agent_type": "marketing",
+      "task_type": "marketing_campaign",
+      "openclaw_agent_id": "market-intel",
+      "openclaw_mode": "execute",
+      "summary": "Build personalized outreach angles, hooks, and messaging for a target account or segment.",
+      "operator_skills": [
+        "playwright",
+        "notion-research-documentation",
+        "linear"
+      ],
+      "inputs": [
+        "company_name",
+        "website",
+        "industry",
+        "offer",
+        "target_buyer",
+        "pain_hypothesis",
+        "notes"
+      ],
+      "execution_prompt": [
+        "Find the most credible business pain and tie the offer to measurable upside.",
+        "Avoid generic agency language and empty flattery.",
+        "Produce messaging that can be used in email, DM, and landing-page copy."
+      ],
+      "output_requirements": [
+        "A short account brief.",
+        "Three personalization angles.",
+        "A primary outreach hook.",
+        "A cold email draft.",
+        "A short DM variant.",
+        "A CTA with a clear commercial next step."
+      ]
+    },
+    "offer_pricing_review": {
+      "name": "Offer Pricing Review",
+      "agent_type": "ceo",
+      "task_type": "decision_making",
+      "openclaw_agent_id": "growth-finance",
+      "openclaw_mode": "report",
+      "summary": "Review an offer, its pricing, and delivery model to improve margin, close-rate, and cash generation.",
+      "operator_skills": [
+        "spreadsheet",
+        "notion-knowledge-capture",
+        "linear"
+      ],
+      "inputs": [
+        "offer_name",
+        "target_customer",
+        "current_price",
+        "delivery_cost",
+        "market_position",
+        "sales_friction",
+        "notes"
+      ],
+      "execution_prompt": [
+        "Balance margin improvement with close-rate and delivery feasibility.",
+        "Prefer pricing changes that increase cash collected quickly and reduce fulfillment drag.",
+        "Call out what should change now versus what needs more evidence."
+      ],
+      "output_requirements": [
+        "An offer summary.",
+        "A pricing verdict: keep, raise, repackage, or simplify.",
+        "Margin and positioning risks.",
+        "Recommended packaging or pricing changes.",
+        "A test plan for the next sales cycle.",
+        "The expected upside if the recommendation works."
+      ]
+    }
+  },
+  "operating_model": {
+    "planner": "openclaw",
+    "company_app": "buiz-swarm",
+    "heartbeat_model": "paperclip-pack/docs/agents-runtime.md",
+    "delivery_pipeline": "agency-pack/strategy/QUICKSTART.md",
+    "principle": "control_plane_not_execution_plane"
+  },
+  "deployment": {
+    "local": {
+      "openclaw": "host runtime",
+      "buiz_swarm": "docker compose"
+    },
+    "production": {
+      "openclaw": "dedicated service",
+      "buiz_swarm": "cloud app stack",
+      "bridge": "stateless HTTP service"
+    }
+  }
+}

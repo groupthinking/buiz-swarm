@@ -22,11 +22,11 @@ def _default_company_profile_manifest() -> str:
     if openclaw_home:
         candidates.append(Path(openclaw_home) / "workspace/projects/profitmax/COMPANY_MANIFEST.json")
 
-    # Host checkout layout:
-    # .../profitmax/buiz-swarm/backend/app/config.py -> .../profitmax/COMPANY_MANIFEST.json
+    # Canonical repo layout:
+    # .../buiz-swarm/backend/app/config.py -> .../buiz-swarm/backend/COMPANY_MANIFEST.json
     resolved = Path(__file__).resolve()
-    if len(resolved.parents) > 3:
-        candidates.append(resolved.parents[3] / "COMPANY_MANIFEST.json")
+    if len(resolved.parents) > 1:
+        candidates.append(resolved.parents[1] / "COMPANY_MANIFEST.json")
 
     for candidate in candidates:
         if candidate.exists():
@@ -92,6 +92,7 @@ class Settings(BaseSettings):
     OPENCLAW_GATEWAY_URL: str = Field(default="http://host.docker.internal:18789", alias="OPENCLAW_GATEWAY_URL")
     OPENCLAW_GATEWAY_TOKEN: Optional[str] = Field(default=None, alias="OPENCLAW_GATEWAY_TOKEN")
     OPENCLAW_BRIDGE_URL: str = Field(default="http://openclaw-bridge:3006", alias="OPENCLAW_BRIDGE_URL")
+    OPENCLAW_ENABLED: bool = Field(default=True, alias="OPENCLAW_ENABLED")
     DEFAULT_COMPANY_PROFILE: str = Field(default="profitmax", alias="DEFAULT_COMPANY_PROFILE")
     COMPANY_PROFILE_MANIFEST: str = Field(
         default_factory=_default_company_profile_manifest,

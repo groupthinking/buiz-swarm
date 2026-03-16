@@ -43,6 +43,9 @@ async def lifespan(app: FastAPI):
     # Register MCP servers
     mcp = get_mcp_client()
     for server_id, server_config in MCP_SERVER_PRESETS.items():
+        if server_id == "openclaw" and not settings.OPENCLAW_ENABLED:
+            logger.info("Skipping OpenClaw bridge registration because OPENCLAW_ENABLED is false")
+            continue
         try:
             await mcp.register_server(
                 server_id=server_id,
