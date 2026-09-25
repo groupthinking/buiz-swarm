@@ -24,6 +24,7 @@ from ..services.billing_service import get_billing_service
 from ..services.infrastructure_service import get_infrastructure_service
 from ..models.company import Company, CompanyStatus, CompanySettings
 from ..models.task import Task, TaskType
+from .dependencies import get_current_user_id
 
 router = APIRouter(prefix="/api/v1")
 
@@ -106,13 +107,11 @@ class WorkflowRunRequest(BaseModel):
 @router.post("/companies", response_model=Dict[str, Any])
 async def create_company(
     request: CreateCompanyRequest,
-    background_tasks: BackgroundTasks
+    background_tasks: BackgroundTasks,
+    owner_id: str = Depends(get_current_user_id)
 ):
     """Create a new company."""
     service = get_company_service()
-    
-    # TODO: Get owner_id from authenticated user
-    owner_id = "user_123"  # Placeholder
     
     company = await service.create_company(
         name=request.name,
@@ -133,12 +132,9 @@ async def create_company(
 
 
 @router.get("/companies")
-async def list_companies():
+async def list_companies(user_id: str = Depends(get_current_user_id)):
     """List all companies for the current user."""
     service = get_company_service()
-    
-    # TODO: Get user_id from authenticated user
-    user_id = "user_123"  # Placeholder
     
     companies = await service.get_user_companies(user_id)
     
@@ -540,14 +536,11 @@ async def stripe_webhook(request: Request):
 # ============== Dashboard Endpoints ==============
 
 @router.get("/dashboard/overview")
-async def dashboard_overview():
+async def dashboard_overview(user_id: str = Depends(get_current_user_id)):
     """Get dashboard overview data."""
     company_service = get_company_service()
     billing_service = get_billing_service()
     orchestrator = get_orchestrator()
-    
-    # TODO: Get from authenticated user
-    user_id = "user_123"
     
     companies = await company_service.get_user_companies(user_id)
     platform_summary = await billing_service.get_platform_summary()
